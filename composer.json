@@ -1,0 +1,17 @@
+{
+  "name":"modulebz/db",
+  "version": "0.0.1",
+  "autoload": {
+    "psr-4": {
+      "ModuleBZ\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "ModuleBZ\\": "src/"
+    }
+  },
+  "require": {
+    "ext-pdo": "*"
+  }
+}

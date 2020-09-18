@@ -1,5 +1,6 @@
 <?
 namespace ModuleBZ;
+use ModuleBZ\DB\Query;
 use PDO;
 use PDOStatement;
 
@@ -9,33 +10,33 @@ use PDOStatement;
  * @package ModuleBZ
  */
 class DB {
-    /** @var PDO ссылка на подключение к БД */
-    protected $DB = null;
+    /** @var ?PDO ссылка на подключение к БД */
+    protected ?PDO $DB;
     /** @var int переменная для подсчёта времени всех запросов всех соединений */
-    protected static $totals_time = 0;
-    /** @var int переменная для подсчёта времени всех запросов текущего соединения */
-    protected $total_time = 0;
-    /** @var int переменная для подсчёта времени сколько ушло на соединение с базой данных */
-    protected $connect_time = 0;
+    protected static int $totals_time = 0;
+    /** @var float переменная для подсчёта времени всех запросов текущего соединения */
+    protected float $total_time = 0;
+    /** @var float переменная для подсчёта времени сколько ушло на соединение с базой данных */
+    protected float $connect_time = 0;
 
     /** @var bool кэшировать ли все запросы, по умолчанию да */
-    protected $isQueryLog = true;
+    protected bool $isQueryLog = true;
     /** @var array кэшируем все запросы */
-    protected $query_log = [];
+    protected array $query_log = [];
 
 
     /** @var string название базы данных */
-    protected $dbname;
+    protected string $dbname;
     /** @var string имя пользователя */
-    protected $username;
+    protected string $username;
     /** @var string пароль пользователя */
-    protected $password;
+    protected string $password;
     /** @var string адрес базы данных */
-    protected $host='127.0.0.1';
+    protected string $host='127.0.0.1';
     /** @var int порт доступа к базе данных */
-    protected $port=5432;
+    protected int $port=5432;
     /** @var array дополнительные опции соединения с базой данных */
-    protected $options = [];
+    protected array $options = [];
 
 
     /**
@@ -61,6 +62,7 @@ class DB {
         $this->options   = $options;
 
         $this->connect();
+
     }
 
     /**
@@ -90,6 +92,32 @@ class DB {
         $this->disconnect();
         $this->connect();
         return $this;
+    }
+
+
+    function execute(Query $query){
+        $time = microtime(true);
+        $prepare = $query->prepare();
+        $q = $this->DB->prepare($prepare->query);
+        foreach ($prepare->params as $k=>$v){
+            $q->bindParam($k,$v);
+        }
+        //$q->debugDumpParams();
+        $res = $q->execute();
+
+        // Считаем сколько времени выполнялся запрос
+        $time = microtime(true) - $time;
+        $this->total_time += $time;
+        DB::$totals_time  += $time;
+        if($this->isQueryLog) {
+            $this->query_log[] = [
+                'query'         => $prepare->query,
+                'time'          => $time,
+                'success'       => boolval($res),
+                'data'          => $prepare->params,
+            ];
+        }
+        return $res;
     }
 
 
